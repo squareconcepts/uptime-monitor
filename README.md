@@ -5,7 +5,7 @@
 [//]: # (![GitHub Actions]&#40;https://github.com/squareconcepts/uptime-monitor/actions/workflows/main.yml/badge.svg&#41;)
 [//]: # ()
 [//]: # (This is where your description should go. Try and limit it to a paragraph or two, and maybe throw in a mention of what PSRs you support to avoid any confusion with users and contributors.)
-
+    
 [//]: # (## Installation)
 
 [//]: # ()

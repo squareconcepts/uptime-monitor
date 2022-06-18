@@ -3,6 +3,11 @@
 namespace Squareconcepts\UptimeMonitor;
 
 use Carbon\Carbon;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Pool;
+use GuzzleHttp\Psr7\Request;
+use Psr\Http\Message\ResponseInterface;
 
 class UptimeMonitor
 {
@@ -11,6 +16,7 @@ class UptimeMonitor
     private ?Carbon $expires_at = null;
     private int $status = 500;
     private string $url = '';
+    private array $urls = [];
 
 
     public function __construct( string $url)
@@ -118,7 +124,7 @@ class UptimeMonitor
         $instance =  new self($url);
         $instance->getExpires();
         $instance->isSiteAvailable();
-        return $instance;
+        return $instance->add($url);
     }
 
     /**
@@ -218,5 +224,37 @@ class UptimeMonitor
             $url = str($this->url)->replace('https://', 'http://')->toString();
             $this->isSiteAvailable($url);
         }
+    }
+
+    public function add(string $url): self
+    {
+        $this->urls[] = $url;
+
+        return $this;
+    }
+
+    public function check()
+    {
+        $requests = function () {
+            foreach ($this->urls as $url) {
+                yield new Request('GET', $url);
+            }
+        };
+        $client = new Client();
+        $pool = new Pool($client, $requests(), [
+            'concurrency' => 10,
+            'fulfilled' => function (ResponseInterface $response, int $index) {
+                if (200 === $response->getStatusCode()) {
+                    echo $this->urls[$index].' is up ! ✅'.PHP_EOL;
+                } else {
+                    echo $this->urls[$index].' is down ! ❌ ('.$response->getStatusCode().')'.PHP_EOL;
+                }
+            },
+            'rejected' => function (RequestException $exception, int $index) {
+                echo $this->urls[$index].' is down ! ❌ ('.$exception->getMessage().')'.PHP_EOL;
+            },
+        ]);
+
+        $pool->promise()->wait();
     }
 }
