@@ -7,6 +7,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Pool;
 use GuzzleHttp\Psr7\Request;
+use Illuminate\Support\Facades\Http;
 use Psr\Http\Message\ResponseInterface;
 
 class UptimeMonitor
@@ -21,12 +22,12 @@ class UptimeMonitor
 
     public function __construct( string $url)
     {
-        $strUrl = str($url);;
-        if($strUrl->startsWith(['http://', 'https://'])){
-            $strUrl = $strUrl->remove(['http://', 'https://']);
-        } else {
+        $strUrl = str($url);
+
+        if(!$strUrl->startsWith(['http://', 'https://'])){
             $strUrl = $strUrl->prepend('https://');
         }
+
         $this->url = $strUrl->toString();
     }
 
@@ -194,35 +195,11 @@ class UptimeMonitor
 
     private function isSiteAvailable( $url = null): void
     {
-        if($url == null) {
-            $url = $this->getUrl();
-        }
-
-        // Check, if a valid url is provided
-        if(!filter_var($url, FILTER_VALIDATE_URL)){
-            return;
-        }
-
-        // Initialize cURL
-        $curlInit = curl_init($url);
-
-        // Set options
-        curl_setopt($curlInit,CURLOPT_CONNECTTIMEOUT,10);
-        curl_setopt($curlInit,CURLOPT_HEADER,true);
-        curl_setopt($curlInit,CURLOPT_NOBODY,true);
-        curl_setopt($curlInit,CURLOPT_RETURNTRANSFER,true);
-
-        // Get response
-        $response = curl_exec($curlInit);
-
-        $this->status = curl_getinfo($curlInit, CURLINFO_HTTP_CODE );
-        // Close a cURL session
-        curl_close($curlInit);
-        $this->isOnline = (bool)$response;
-
-        if($this->status == 0) {
-            $url = str($this->url)->replace('https://', 'http://')->toString();
-            $this->isSiteAvailable($url);
+        try{
+           $response =  Http::get($this->getUrl());
+           $this->status = $response->status();
+           $this->isOnline = !$response->failed();
+        } catch (\Exception $exception) {
         }
     }
 
