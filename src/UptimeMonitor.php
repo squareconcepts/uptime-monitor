@@ -19,8 +19,7 @@ class UptimeMonitor
     private string $url = '';
     private array $urls = [];
 
-
-    public function __construct( string $url)
+    public function __construct(string $url)
     {
         $strUrl = str($url);
 
@@ -105,7 +104,6 @@ class UptimeMonitor
         } else {
             return str($this->url)->replace('https://', 'http://')->toString();
         }
-
     }
 
     /**
@@ -116,15 +114,14 @@ class UptimeMonitor
         $this->url = $url;
     }
 
-
     /**
      * @throws \Exception
      */
     public static function make(string $url): UptimeMonitor
     {
-        $instance =  new self($url);
+        $instance = new self($url);
         $instance->getExpires();
-        $instance->isSiteAvailable();
+        $url = $instance->isSiteAvailable($url);
         return $instance->add($url);
     }
 
@@ -163,16 +160,16 @@ class UptimeMonitor
     {
         try {
             $parse_url = parse_url($this->getUrl(), PHP_URL_HOST);
+
             if($parse_url === null) {
                 return;
             }
 
             $this->hasSsl = $this->has_ssl($parse_url);
+
             if($this->hasSsl) {
                 $get = stream_context_create(array("ssl" => array("capture_peer_cert" => TRUE)));
-                $read = stream_socket_client("ssl://".$parse_url.":443", $errno, $errstr,
-                    30, STREAM_CLIENT_CONNECT, $get);
-
+                $read = stream_socket_client("ssl://".$parse_url.":443", $errno, $errstr, 30, STREAM_CLIENT_CONNECT, $get);
 
                 $cert = stream_context_get_params($read);
                 $certinfo = openssl_x509_parse($cert['options']['ssl']['peer_certificate']);
@@ -183,7 +180,6 @@ class UptimeMonitor
         } catch (\Exception $exception) {
             throw  new \Exception($exception->getMessage());
         }
-
     }
 
     private function has_ssl( $domain ) {
@@ -193,14 +189,26 @@ class UptimeMonitor
         return $res;
     }
 
-    private function isSiteAvailable( $url = null): void
+    private function isSiteAvailable($url = null): bool
     {
-        try{
-           $response =  Http::get($this->getUrl());
+        try {
+           $response = Http::get($this->getUrl());
            $this->status = $response->status();
            $this->isOnline = !$response->failed();
         } catch (\Exception $exception) {
+            if (!empty($url) && !str_contains($url, 'www.')) {
+                $url = 'www.' . $url;
+                $instance = new self($url);
+
+                try {
+                    $response = Http::get($instance->getUrl());
+                    $this->status = $response->status();
+                    $this->isOnline = !$response->failed();
+                } catch (\Exception $exception) {}
+            }
         }
+
+        return $url;
     }
 
     public function add(string $url): self
