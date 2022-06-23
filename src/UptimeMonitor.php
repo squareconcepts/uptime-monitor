@@ -194,7 +194,7 @@ class UptimeMonitor
         return $res;
     }
 
-    private function isSiteAvailable($url = null): bool
+    private function isSiteAvailable($url = null): string
     {
         try {
            $response = Http::get($this->getUrl());
