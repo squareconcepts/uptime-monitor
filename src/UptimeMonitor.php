@@ -114,6 +114,11 @@ class UptimeMonitor
         $this->url = $url;
     }
 
+    public function getUrls(): array
+    {
+        return $this->urls;
+    }
+
     /**
      * @throws \Exception
      */
