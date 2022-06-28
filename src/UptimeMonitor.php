@@ -209,6 +209,18 @@ class UptimeMonitor
                     $response = Http::get($instance->getUrl());
                     $this->status = $response->status();
                     $this->isOnline = !$response->failed();
+                } catch (\Exception $exception) {
+                    try {
+                        $response = Http::withoutVerifying()->get($instance->getUrl());
+                        $this->status = $response->status();
+                        $this->isOnline = !$response->failed();
+                    } catch (\Exception $exception) {}
+                }
+            } else {
+                try {
+                    $response = Http::withoutVerifying()->get($url);
+                    $this->status = $response->status();
+                    $this->isOnline = !$response->failed();
                 } catch (\Exception $exception) {}
             }
         }
