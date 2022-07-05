@@ -9,6 +9,7 @@ use GuzzleHttp\Pool;
 use GuzzleHttp\Psr7\Request;
 use Illuminate\Support\Facades\Http;
 use Psr\Http\Message\ResponseInterface;
+use Spatie\SslCertificate\SslCertificate;
 
 class UptimeMonitor
 {
@@ -191,11 +192,14 @@ class UptimeMonitor
         $ssl_check = @fsockopen( 'ssl://' . $domain, 443, $errno, $errstr, 30 );
         $res = !! $ssl_check;
         if ( $ssl_check ) { fclose( $ssl_check ); }
+        else {$certificate = SslCertificate::createForHostName($domain);}
         return $res;
     }
 
     private function isSiteAvailable($url = null): string
     {
+        $original_url = clone $url;
+
         try {
            $response = Http::get($this->getUrl());
            $this->status = $response->status();
@@ -214,7 +218,9 @@ class UptimeMonitor
                         $response = Http::withoutVerifying()->get($instance->getUrl());
                         $this->status = $response->status();
                         $this->isOnline = !$response->failed();
-                    } catch (\Exception $exception) {}
+                    } catch (\Exception $exception) {
+                        return $original_url;
+                    }
                 }
             } else {
                 try {
