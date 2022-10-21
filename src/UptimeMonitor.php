@@ -18,7 +18,7 @@ class UptimeMonitor
     private int $status = 500;
     private string $url = '';
     private array $urls = [];
-    private bool $InMaintenance = false;
+    private bool $inMaintenance = false;
 
     public function __construct(string $url)
     {
@@ -199,8 +199,8 @@ class UptimeMonitor
         if($response->status() == 503) {
             $body = str($response->body());
             $title = $body->after('<title>')->before('</title>');
-            $this->InMaintenance = $title->contains('maintenance', true);
-            $this->isOnline = true;
+            $this->inMaintenance = $title->contains('maintenance', true);
+            $this->isOnline = $this->inMaintenance;
         }
     }
     private function isSiteAvailable($url = null): string
