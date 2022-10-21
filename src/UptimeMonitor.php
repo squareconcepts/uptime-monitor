@@ -199,7 +199,7 @@ class UptimeMonitor
         if($response->status() == 503) {
             $body = str($response->body());
             $title = $body->after('<title>')->before('</title>');
-            $this->inMaintenance = $title->contains('maintenance', true);
+            $this->inMaintenance = $title->contains(['maintenance', 'onderhoud'], true);
             $this->isOnline = $this->inMaintenance;
         }
     }
