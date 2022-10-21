@@ -18,6 +18,7 @@ class UptimeMonitor
     private int $status = 500;
     private string $url = '';
     private array $urls = [];
+    private bool $InMaintenance = false;
 
     public function __construct(string $url)
     {
@@ -194,6 +195,14 @@ class UptimeMonitor
         return $res;
     }
 
+    private function checkForMaintenanceMode(\Illuminate\Http\Client\Response $response) {
+        if($response->status() == 503) {
+            $body = str($response->body());
+            $title = $body->after('<title>')->before('</title>');
+            $this->InMaintenance = $title->contains('maintenance', true);
+            $this->isOnline = true;
+        }
+    }
     private function isSiteAvailable($url = null): string
     {
         $original_url = $url;
@@ -202,6 +211,7 @@ class UptimeMonitor
            $response = Http::get($this->getUrl());
            $this->status = $response->status();
            $this->isOnline = !$response->failed();
+           $this->checkForMaintenanceMode($response);
         } catch (\Exception $exception) {
             if (!empty($url) && !str_contains($url, 'www.')) {
                 $url = 'www.' . $url;
@@ -211,11 +221,13 @@ class UptimeMonitor
                     $response = Http::get($instance->getUrl());
                     $this->status = $response->status();
                     $this->isOnline = !$response->failed();
+                    $this->checkForMaintenanceMode($response);
                 } catch (\Exception $exception) {
                     try {
                         $response = Http::withoutVerifying()->get($instance->getUrl());
                         $this->status = $response->status();
                         $this->isOnline = !$response->failed();
+                        $this->checkForMaintenanceMode($response);
                     } catch (\Exception $exception) {
                         return $original_url;
                     }
@@ -225,6 +237,7 @@ class UptimeMonitor
                     $response = Http::withoutVerifying()->get($url);
                     $this->status = $response->status();
                     $this->isOnline = !$response->failed();
+                    $this->checkForMaintenanceMode($response);
                 } catch (\Exception $exception) {}
             }
         }
